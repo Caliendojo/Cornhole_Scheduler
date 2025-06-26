@@ -53,7 +53,6 @@
 </table>
 
 <script>
-// 📐 Board Calculator
 function calculateBoards() {
   const players = parseInt(document.getElementById("calcPlayers").value);
   const matches = parseInt(document.getElementById("calcMatches").value);
@@ -70,7 +69,6 @@ function calculateBoards() {
   }
 }
 
-// 🌀 Utility
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -82,7 +80,6 @@ function startScheduling() {
   document.getElementById('error').textContent = '';
   document.getElementById('scheduleTable').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-
   setTimeout(generateSchedule, 50);
 }
 
@@ -172,9 +169,7 @@ function generateSchedule() {
       if (teamOpponents[team1].has(team2)) continue;
       if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
 
-      const maxRounds = rounds.length || 1;
-
-      for (let r = 0; r < maxRounds; r++) {
+      for (let r = 0; r <= rounds.length; r++) {
         if (!rounds[r]) rounds[r] = [];
 
         for (let b = 1; b <= B; b++) {
@@ -195,35 +190,6 @@ function generateSchedule() {
             teamMatchCount[team2]--;
             teamBoardsUsed[team1].delete(b);
             teamBoardsUsed[team2].delete(b);
-            teamOpponents[team1].delete
-            teamOpponents[team2].delete(team1);
-          }
-        }
-      }
-
-      // Try a new round if not already tried
-      if (rounds.length === 0 || rounds.length === maxRounds) {
-        const newRound = rounds.length;
-        rounds[newRound] = [];
-        for (let b = 1; b <= B; b++) {
-          if (canPlaceMatch(newRound, b, match)) {
-            rounds[newRound].push({ board: b, match });
-            teamMatchCount[team1]++;
-            teamMatchCount[team2]++;
-            teamBoardsUsed[team1].add(b);
-            teamBoardsUsed[team2].add(b);
-            teamOpponents[team1].add(team2);
-            teamOpponents[team2].add(team1);
-
-            if (backtrack(index + 1)) return true;
-
-            // Undo
-            rounds[newRound].pop();
-            if (rounds[newRound].length === 0) delete rounds[newRound];
-            teamMatchCount[team1]--;
-            teamMatchCount[team2]--;
-            teamBoardsUsed[team1].delete(b);
-            teamBoardsUsed[team2].delete(b);
             teamOpponents[team1].delete(team2);
             teamOpponents[team2].delete(team1);
           }
@@ -235,30 +201,4 @@ function generateSchedule() {
   }
 
   const success = backtrack(0);
-  document.getElementById('loading').style.display = 'none';
-
-  if (!success) {
-    errorDiv.textContent = 'Could not find a valid schedule with the given constraints.';
-    return;
-  }
-
-  const table = document.getElementById('scheduleTable');
-  const tbody = table.querySelector('tbody');
-  tbody.innerHTML = '';
-
-  for (let r = 0; r < rounds.length; r++) {
-    const roundMatches = rounds[r];
-    roundMatches.sort((a, b) => a.board - b.board);
-    roundMatches.forEach(({ board, match }) => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${r + 1}</td><td>${board}</td><td>${match.team1}</td><td>${match.team2}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  table.style.display = 'table';
-}
-</script>
-
-</body>
-</html>
+  document.getElementById('loading').style
