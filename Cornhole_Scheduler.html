@@ -1,0 +1,311 @@
+<!-- START OF CORNHOLE SCHEDULER WITH BOARD CALCULATOR -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Cornhole Scheduler with Board Calculator</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 20px; }
+label { display: block; margin-top: 15px; font-weight: bold; }
+input[type=number], textarea { width: 100%; padding: 8px; margin-top: 5px; font-size: 14px; }
+button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+.info { background: #f1f1f1; padding: 10px; margin-top: 10px; border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+th { background-color: #f9f9f9; }
+.error { color: red; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Cornhole Match Scheduler</h2>
+
+<!-- 📌 Board Calculator -->
+<div class="info">
+<h3>📐 Board Calculator</h3>
+<label>Number of Players:</label>
+<input id="calcPlayers" type="number" value="8" min="2" step="2" oninput="calculateBoards()" />
+
+<label>Matches per Team:</label>
+<input id="calcMatches" type="number" value="3" min="1" oninput="calculateBoards()" />
+
+<label>Rounds to Fit Matches Into (optional):</label>
+<input id="calcRounds" type="number" value="4" min="1" oninput="calculateBoards()" />
+
+<p><strong>Estimated Boards Needed:</strong> <span id="boardsNeeded">–</span></p>
+</div>
+
+<!-- 🔢 Scheduler Inputs -->
+<label for="players">Enter player names (one per line, even number):</label>
+<textarea id="players" rows="8" placeholder="Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan&#10;Fiona&#10;George&#10;Helen"></textarea>
+
+<label for="boards">Number of Boards (You can adjust):</label>
+<input id="boards" type="number" min="1" value="4" />
+
+<label for="matches">Matches per Team:</label>
+<input id="matches" type="number" min="1" value="3" />
+
+<button onclick="startScheduling()">Generate Schedule</button>
+
+<div id="loading" style="display:none;">Calculating schedule, please wait...</div>
+<div id="error" class="error"></div>
+
+<table id="scheduleTable" style="display:none;">
+<thead>
+<tr><th>Round</th><th>Board</th><th>Team 1</th><th>Team 2</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+// 📐 Board Calculator Logic
+function calculateBoards() {
+const players = parseInt(document.getElementById("calcPlayers").value);
+const matches = parseInt(document.getElementById("calcMatches").value);
+const rounds = parseInt(document.getElementById("calcRounds").value);
+const output = document.getElementById("boardsNeeded");
+
+if (players && players % 2 === 0 && matches && rounds) {
+const teams = players / 2;
+const totalMatches = (teams * matches) / 2;
+const boards = Math.ceil(totalMatches / rounds);
+output.textContent = boards;
+} else {
+output.textContent = '–';
+}
+}
+
+// 🎯 Match Scheduling (same logic as previous backtracking version)
+// [Insert backtracking scheduler JavaScript here]
+// If you've already pasted that earlier, reuse the same <script> block from before.
+
+</script>
+
+</body>
+</html>
+<!-- END -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cornhole Scheduler with Backtracking</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 20px; }
+label { display: block; margin-top: 15px; font-weight: bold; }
+textarea, input[type=number] { width: 100%; padding: 8px; margin-top: 5px; font-size: 14px; }
+button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+th { background-color: #f2f2f2; }
+.error { color: red; margin-top: 10px; }
+#loading { margin-top: 15px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<script>
+// Utility shuffle
+function shuffle(array) {
+for (let i = array.length -1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i+1));
+[array[i], array[j]] = [array[j], array[i]];
+}
+}
+
+function startScheduling() {
+document.getElementById('error').textContent = '';
+document.getElementById('scheduleTable').style.display = 'none';
+document.getElementById('loading').style.display = 'block';
+
+setTimeout(generateSchedule, 50); // slight delay to show loading UI
+}
+
+function generateSchedule() {
+const errorDiv = document.getElementById('error');
+const playersText = document.getElementById('players').value.trim();
+const B = parseInt(document.getElementById('boards').value);
+const M = parseInt(document.getElementById('matches').value);
+
+if (!playersText) {
+errorDiv.textContent = 'Please enter player names.';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+const players = playersText.split('\n').map(s => s.trim()).filter(s => s);
+if (players.length % 2 !== 0) {
+errorDiv.textContent = 'Number of players must be even.';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+const n = players.length / 2; // number of teams
+
+if (!B || B < 1) {
+errorDiv.textContent = 'Number of boards must be at least 1.';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+if (!M || M < 1) {
+errorDiv.textContent = 'Matches per team must be at least 1.';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+if (M > n-1) {
+errorDiv.textContent = 'Matches per team cannot exceed number of possible opponents (teams-1).';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+if (M > B) {
+errorDiv.textContent = 'Matches per team cannot exceed number of boards.';
+document.getElementById('loading').style.display = 'none';
+return;
+}
+
+// Pair players randomly into teams
+shuffle(players);
+const teams = [];
+for (let i = 0; i < players.length; i += 2) {
+teams.push(players[i] + ' & ' + players[i + 1]);
+}
+
+// Generate all possible matches (teamA vs teamB where A < B)
+const matches = [];
+for (let i = 0; i < teams.length; i++) {
+for (let j = i + 1; j < teams.length; j++) {
+matches.push({team1: teams[i], team2: teams[j]});
+}
+}
+
+// We want each team to play exactly M matches
+// Assign matches to rounds and boards satisfying constraints:
+// - Each team max 1 match per round
+// - Each team plays each board at most once
+// - No repeated opponents
+// - Total matches per team = M
+
+// Data structures to track during backtracking
+const teamMatchCount = {}; // team => matches played count
+const teamBoardsUsed = {}; // team => Set of boards used
+const teamOpponents = {}; // team => Set of opponents played
+const rounds = []; // rounds: array of {board:number, match:{team1,team2}}
+
+teams.forEach(t => {
+teamMatchCount[t] = 0;
+teamBoardsUsed[t] = new Set();
+teamOpponents[t] = new Set();
+});
+
+const totalMatchesNeeded = M * teams.length / 2; // total matches to schedule
+
+// We'll assign matches one by one to rounds/boards recursively
+
+// Helper: check if a match can be scheduled in round r on board b
+function canPlaceMatch(r, b, match) {
+const {team1, team2} = match;
+
+// team1 or team2 already playing in round r?
+if (rounds[r]) {
+for (const m of rounds[r]) {
+if (m.match.team1 === team1 || m.match.team2 === team1 || m.match.team1 === team2 || m.match.team2 === team2) {
+return false;
+}
+}
+}
+
+// team1 or team2 used board b before?
+if (teamBoardsUsed[team1].has(b) || teamBoardsUsed[team2].has(b)) return false;
+
+// teams haven't played each other before?
+if (teamOpponents[team1].has(team2)) return false;
+
+return true;
+}
+
+// Backtracking function to assign matches[index .. end]
+function backtrack(index) {
+if (index === totalMatchesNeeded) return true;
+
+// Find a match to schedule: pick one from matches not yet used, where both teams still need matches
+// To optimize, try all unused matches in order
+
+for (let mIdx = 0; mIdx < matches.length; mIdx++) {
+const match = matches[mIdx];
+const {team1, team2} = match;
+
+// Already scheduled this match?
+if (teamOpponents[team1].has(team2)) continue;
+
+// Check if teams still need matches
+if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
+
+// Try to assign this match to a round and board
+// We'll try all rounds from 0 upwards and boards from 1..B
+
+for (let r = 0; r <= rounds.length; r++) {
+if (!rounds[r]) rounds[r] = [];
+
+for (let b = 1; b <= B; b++) {
+if (canPlaceMatch(r, b, match)) {
+// Place match
+rounds[r].push({board: b, match});
+teamMatchCount[team1]++;
+teamMatchCount[team2]++;
+teamBoardsUsed[team1].add(b);
+teamBoardsUsed[team2].add(b);
+teamOpponents[team1].add(team2);
+teamOpponents[team2].add(team1);
+
+// Recursive call
+if (backtrack(index + 1)) return true;
+
+// Backtrack
+rounds[r].pop();
+if (rounds[r].length === 0) delete rounds[r];
+teamMatchCount[team1]--;
+teamMatchCount[team2]--;
+teamBoardsUsed[team1].delete(b);
+teamBoardsUsed[team2].delete(b);
+teamOpponents[team1].delete(team2);
+teamOpponents[team2].delete(team1);
+}
+}
+}
+}
+
+// No valid assignment found for this index
+return false;
+}
+
+// Run backtracking
+const success = backtrack(0);
+
+document.getElementById('loading').style.display = 'none';
+
+if (!success) {
+errorDiv.textContent = 'Could not find a valid schedule with the given constraints.';
+return;
+}
+
+// Prepare display
+const table = document.getElementById('scheduleTable');
+const tbody = table.querySelector('tbody');
+tbody.innerHTML = '';
+
+// Sort rounds by index and boards by number
+for (let r = 0; r < rounds.length; r++) {
+const roundMatches = rounds[r];
+roundMatches.sort((a,b) => a.board - b.board);
+roundMatches.forEach(({board, match}) => {
+const tr = document.createElement('tr');
+tr.innerHTML = `<td>${r+1}</td><td>${board}</td><td>${match.team1}</td><td>${match.team2}</td>`;
+tbody.appendChild(tr);
+});
+}
+
+table.style.display = 'table';
+}
+</script>
+
+</body>
+</html>
