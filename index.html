@@ -1,36 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Cornhole Scheduler with Optimized Rounds</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 700px; margin: auto; padding: 20px; }
-    label { display: block; margin-top: 15px; font-weight: bold; }
-    input[type=number], textarea { width: 100%; padding: 8px; margin-top: 5px; font-size: 14px; }
-    button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    .info { background: #f9f9f9; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    th { background-color: #f0f0f0; }
-    .error { color: red; margin-top: 10px; }
-    #loading { font-weight: bold; margin-top: 10px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cornhole Scheduler with Board Calculator</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 650px; margin: auto; padding: 20px; }
+  label { display: block; margin-top: 15px; font-weight: bold; }
+  textarea, input[type=number] { width: 100%; padding: 8px; margin-top: 5px; font-size: 14px; }
+  textarea::placeholder { color: #aaa; font-style: italic; }
+  button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+  .info { background: #f1f1f1; padding: 10px; margin-top: 10px; border-radius: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f9f9f9; }
+  .error { color: red; margin-top: 10px; }
+  #loading { margin-top: 15px; font-weight: bold; }
+</style>
 </head>
 <body>
 
 <h2>Cornhole Match Scheduler</h2>
 
+<!-- 📌 Board Calculator -->
 <div class="info">
   <h3>📐 Board Calculator</h3>
   <label>Number of Players:</label>
   <input id="calcPlayers" type="number" value="8" min="2" step="2" oninput="calculateBoards()" />
+
   <label>Matches per Team:</label>
   <input id="calcMatches" type="number" value="3" min="1" oninput="calculateBoards()" />
+
   <label>Rounds to Fit Matches Into (optional):</label>
   <input id="calcRounds" type="number" value="4" min="1" oninput="calculateBoards()" />
+
   <p><strong>Estimated Boards Needed:</strong> <span id="boardsNeeded">–</span></p>
 </div>
 
+<!-- 🔢 Scheduler Inputs -->
 <label for="players">Enter player names (one per line, even number):</label>
 <textarea id="players" rows="8" placeholder="Alice&#10;Bob&#10;Charlie&#10;Diana&#10;Evan&#10;Fiona&#10;George&#10;Helen"></textarea>
 
@@ -53,6 +60,7 @@
 </table>
 
 <script>
+// 📐 Board Calculator Logic
 function calculateBoards() {
   const players = parseInt(document.getElementById("calcPlayers").value);
   const matches = parseInt(document.getElementById("calcMatches").value);
@@ -69,9 +77,10 @@ function calculateBoards() {
   }
 }
 
+// Utility shuffle
 function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+  for (let i = array.length -1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
     [array[i], array[j]] = [array[j], array[i]];
   }
 }
@@ -80,7 +89,8 @@ function startScheduling() {
   document.getElementById('error').textContent = '';
   document.getElementById('scheduleTable').style.display = 'none';
   document.getElementById('loading').style.display = 'block';
-  setTimeout(generateSchedule, 50);
+
+  setTimeout(generateSchedule, 50); // slight delay to show loading UI
 }
 
 function generateSchedule() {
@@ -94,15 +104,14 @@ function generateSchedule() {
     document.getElementById('loading').style.display = 'none';
     return;
   }
-
   const players = playersText.split('\n').map(s => s.trim()).filter(s => s);
   if (players.length % 2 !== 0) {
     errorDiv.textContent = 'Number of players must be even.';
     document.getElementById('loading').style.display = 'none';
     return;
   }
+  const n = players.length / 2; // number of teams
 
-  const n = players.length / 2;
   if (!B || B < 1) {
     errorDiv.textContent = 'Number of boards must be at least 1.';
     document.getElementById('loading').style.display = 'none';
@@ -113,29 +122,37 @@ function generateSchedule() {
     document.getElementById('loading').style.display = 'none';
     return;
   }
-  if (M > n - 1) {
-    errorDiv.textContent = 'Matches per team cannot exceed number of opponents.';
+  if (M > n-1) {
+    errorDiv.textContent = 'Matches per team cannot exceed number of possible opponents (teams-1).';
+    document.getElementById('loading').style.display = 'none';
+    return;
+  }
+  if (M > B) {
+    errorDiv.textContent = 'Matches per team cannot exceed number of boards.';
     document.getElementById('loading').style.display = 'none';
     return;
   }
 
+  // Pair players randomly into teams
   shuffle(players);
   const teams = [];
   for (let i = 0; i < players.length; i += 2) {
     teams.push(players[i] + ' & ' + players[i + 1]);
   }
 
+  // Generate all possible matches (teamA vs teamB where A < B)
   const matches = [];
   for (let i = 0; i < teams.length; i++) {
     for (let j = i + 1; j < teams.length; j++) {
-      matches.push({ team1: teams[i], team2: teams[j] });
+      matches.push({team1: teams[i], team2: teams[j]});
     }
   }
 
-  const teamMatchCount = {};
-  const teamBoardsUsed = {};
-  const teamOpponents = {};
-  const rounds = [];
+  // Data structures to track during backtracking
+  const teamMatchCount = {}; // team => matches played count
+  const teamBoardsUsed = {}; // team => Set of boards used
+  const teamOpponents = {}; // team => Set of opponents played
+  const rounds = []; // rounds: array of {board:number, match:{team1,team2}}
 
   teams.forEach(t => {
     teamMatchCount[t] = 0;
@@ -143,114 +160,105 @@ function generateSchedule() {
     teamOpponents[t] = new Set();
   });
 
-  const totalMatchesNeeded = (teams.length * M) / 2;
+  const totalMatchesNeeded = (M * teams.length) / 2; // total matches to schedule
 
+  // Helper: check if a match can be scheduled in round r on board b
   function canPlaceMatch(r, b, match) {
-    const { team1, team2 } = match;
+    const {team1, team2} = match;
+
+    // team1 or team2 already playing in round r?
     if (rounds[r]) {
       for (const m of rounds[r]) {
-        if (m.match.team1 === team1 || m.match.team2 === team1 || m.match.team1 === team2 || m.match.team2 === team2) {
+        if (
+          m.match.team1 === team1 || m.match.team2 === team1 ||
+          m.match.team1 === team2 || m.match.team2 === team2
+        ) {
           return false;
         }
       }
     }
+
+    // team1 or team2 used board b before?
     if (teamBoardsUsed[team1].has(b) || teamBoardsUsed[team2].has(b)) return false;
+
+    // teams haven't played each other before?
     if (teamOpponents[team1].has(team2)) return false;
+
     return true;
   }
 
+  // Backtracking function to assign matches[index .. end]
   function backtrack(index) {
-  if (index === totalMatchesNeeded) return true;
+    if (index === totalMatchesNeeded) return true;
 
-  for (let mIdx = 0; mIdx < matches.length; mIdx++) {
-    const match = matches[mIdx];
-    const { team1, team2 } = match;
+    for (let mIdx = 0; mIdx < matches.length; mIdx++) {
+      const match = matches[mIdx];
+      const {team1, team2} = match;
 
-    if (teamOpponents[team1].has(team2)) continue;
-    if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
+      if (teamOpponents[team1].has(team2)) continue;
+      if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
 
-    // Try placing in existing rounds (prefer rounds with available board slots)
-    for (let r = 0; r < rounds.length; r++) {
-      if (rounds[r].length >= B) continue; // round is full
+      // Try to place this match into the earliest round that is not full
+      for (let r = 0; r <= rounds.length; r++) {
+        if (!rounds[r]) rounds[r] = [];
 
-      for (let b = 1; b <= B; b++) {
-        if (!rounds[r].some(m => m.board === b) && canPlaceMatch(r, b, match)) {
-          // Place match
-          rounds[r].push({ board: b, match });
-          teamMatchCount[team1]++;
-          teamMatchCount[team2]++;
-          teamBoardsUsed[team1].add(b);
-          teamBoardsUsed[team2].add(b);
-          teamOpponents[team1].add(team2);
-          teamOpponents[team2].add(team1);
+        // If round r is full (matches == boards), skip to next round
+        if (rounds[r].length >= B) continue;
 
-          if (backtrack(index + 1)) return true;
+        // Try all boards 1..B, only boards not taken in this round
+        for (let b = 1; b <= B; b++) {
+          if (rounds[r].some(m => m.board === b)) continue;
 
-          // Backtrack
-          rounds[r].pop();
-          teamMatchCount[team1]--;
-          teamMatchCount[team2]--;
-          teamBoardsUsed[team1].delete(b);
-          teamBoardsUsed[team2].delete(b);
-          teamOpponents[team1].delete(team2);
-          teamOpponents[team2].delete(team1);
+          if (canPlaceMatch(r, b, match)) {
+            rounds[r].push({board: b, match});
+            teamMatchCount[team1]++;
+            teamMatchCount[team2]++;
+            teamBoardsUsed[team1].add(b);
+            teamBoardsUsed[team2].add(b);
+            teamOpponents[team1].add(team2);
+            teamOpponents[team2].add(team1);
+
+            if (backtrack(index + 1)) return true;
+
+            // Backtrack
+            rounds[r].pop();
+            if (rounds[r].length === 0) rounds.pop();
+            teamMatchCount[team1]--;
+            teamMatchCount[team2]--;
+            teamBoardsUsed[team1].delete(b);
+            teamBoardsUsed[team2].delete(b);
+            teamOpponents[team1].delete(team2);
+            teamOpponents[team2].delete(team1);
+          }
         }
+
+        // After trying all boards in round r, do not try next rounds yet to keep minimal rounds
+        break;
       }
     }
-
-    // Try creating a new round only if all existing rounds are full
-    if (rounds.length === 0 || rounds[rounds.length - 1].length === B) {
-      const r = rounds.length;
-      rounds[r] = [];
-
-      for (let b = 1; b <= B; b++) {
-        if (canPlaceMatch(r, b, match)) {
-          rounds[r].push({ board: b, match });
-          teamMatchCount[team1]++;
-          teamMatchCount[team2]++;
-          teamBoardsUsed[team1].add(b);
-          teamBoardsUsed[team2].add(b);
-          teamOpponents[team1].add(team2);
-          teamOpponents[team2].add(team1);
-
-          if (backtrack(index + 1)) return true;
-
-          // Backtrack
-          rounds[r].pop();
-          if (rounds[r].length === 0) rounds.pop();
-          teamMatchCount[team1]--;
-          teamMatchCount[team2]--;
-          teamBoardsUsed[team1].delete(b);
-          teamBoardsUsed[team2].delete(b);
-          teamOpponents[team1].delete(team2);
-          teamOpponents[team2].delete(team1);
-        }
-      }
-    }
+    return false;
   }
 
-  return false;
-}
-
   const success = backtrack(0);
-  document.getElementById('loading').style
-    document.getElementById('loading').style.display = 'none';
+
+  document.getElementById('loading').style.display = 'none';
 
   if (!success) {
     errorDiv.textContent = 'Could not find a valid schedule with the given constraints.';
     return;
   }
 
+  // Prepare display
   const table = document.getElementById('scheduleTable');
   const tbody = table.querySelector('tbody');
   tbody.innerHTML = '';
 
   for (let r = 0; r < rounds.length; r++) {
     const roundMatches = rounds[r];
-    roundMatches.sort((a, b) => a.board - b.board);
-    roundMatches.forEach(({ board, match }) => {
+    roundMatches.sort((a,b) => a.board - b.board);
+    roundMatches.forEach(({board, match}) => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${r + 1}</td><td>${board}</td><td>${match.team1}</td><td>${match.team2}</td>`;
+      tr.innerHTML = `<td>${r+1}</td><td>${board}</td><td>${match.team1}</td><td>${match.team2}</td>`;
       tbody.appendChild(tr);
     });
   }
