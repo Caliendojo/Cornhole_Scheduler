@@ -160,42 +160,77 @@ function generateSchedule() {
   }
 
   function backtrack(index) {
-    if (index === totalMatchesNeeded) return true;
+  if (index === totalMatchesNeeded) return true;
 
-    for (let mIdx = 0; mIdx < matches.length; mIdx++) {
-      const match = matches[mIdx];
-      const { team1, team2 } = match;
+  for (let mIdx = 0; mIdx < matches.length; mIdx++) {
+    const match = matches[mIdx];
+    const { team1, team2 } = match;
 
-      if (teamOpponents[team1].has(team2)) continue;
-      if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
+    if (teamOpponents[team1].has(team2)) continue;
+    if (teamMatchCount[team1] >= M || teamMatchCount[team2] >= M) continue;
 
-      for (let r = 0; r <= rounds.length; r++) {
-        if (!rounds[r]) rounds[r] = [];
+    // Try placing in existing rounds (prefer rounds with available board slots)
+    for (let r = 0; r < rounds.length; r++) {
+      if (rounds[r].length >= B) continue; // round is full
 
-        for (let b = 1; b <= B; b++) {
-          if (canPlaceMatch(r, b, match)) {
-            rounds[r].push({ board: b, match });
-            teamMatchCount[team1]++;
-            teamMatchCount[team2]++;
-            teamBoardsUsed[team1].add(b);
-            teamBoardsUsed[team2].add(b);
-            teamOpponents[team1].add(team2);
-            teamOpponents[team2].add(team1);
+      for (let b = 1; b <= B; b++) {
+        if (!rounds[r].some(m => m.board === b) && canPlaceMatch(r, b, match)) {
+          // Place match
+          rounds[r].push({ board: b, match });
+          teamMatchCount[team1]++;
+          teamMatchCount[team2]++;
+          teamBoardsUsed[team1].add(b);
+          teamBoardsUsed[team2].add(b);
+          teamOpponents[team1].add(team2);
+          teamOpponents[team2].add(team1);
 
-            if (backtrack(index + 1)) return true;
+          if (backtrack(index + 1)) return true;
 
-            rounds[r].pop();
-            if (rounds[r].length === 0) delete rounds[r];
-            teamMatchCount[team1]--;
-            teamMatchCount[team2]--;
-            teamBoardsUsed[team1].delete(b);
-            teamBoardsUsed[team2].delete(b);
-            teamOpponents[team1].delete(team2);
-            teamOpponents[team2].delete(team1);
-          }
+          // Backtrack
+          rounds[r].pop();
+          teamMatchCount[team1]--;
+          teamMatchCount[team2]--;
+          teamBoardsUsed[team1].delete(b);
+          teamBoardsUsed[team2].delete(b);
+          teamOpponents[team1].delete(team2);
+          teamOpponents[team2].delete(team1);
         }
       }
     }
+
+    // Try creating a new round only if all existing rounds are full
+    if (rounds.length === 0 || rounds[rounds.length - 1].length === B) {
+      const r = rounds.length;
+      rounds[r] = [];
+
+      for (let b = 1; b <= B; b++) {
+        if (canPlaceMatch(r, b, match)) {
+          rounds[r].push({ board: b, match });
+          teamMatchCount[team1]++;
+          teamMatchCount[team2]++;
+          teamBoardsUsed[team1].add(b);
+          teamBoardsUsed[team2].add(b);
+          teamOpponents[team1].add(team2);
+          teamOpponents[team2].add(team1);
+
+          if (backtrack(index + 1)) return true;
+
+          // Backtrack
+          rounds[r].pop();
+          if (rounds[r].length === 0) rounds.pop();
+          teamMatchCount[team1]--;
+          teamMatchCount[team2]--;
+          teamBoardsUsed[team1].delete(b);
+          teamBoardsUsed[team2].delete(b);
+          teamOpponents[team1].delete(team2);
+          teamOpponents[team2].delete(team1);
+        }
+      }
+    }
+  }
+
+  return false;
+}
 
     return false;
   }
